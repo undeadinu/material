@@ -175,6 +175,11 @@ md-pagination-wrapper {
   md-tab-item {
     min-width: 72px;
   }
+  @media (min-width: $layout-breakpoint-xs) {
+    md-tab-item {
+      min-width: 160px;
+    }
+  }
 }
 
 md-tabs-content-wrapper {
