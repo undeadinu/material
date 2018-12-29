@@ -13,6 +13,7 @@ const gulpif = require('gulp-if');
 const minifyCss = util.minifyCss;
 const args = util.args;
 const IS_DEV = require('../const').IS_DEV;
+const path = require('path');
 
 exports.task = function() {
   const streams = [];
@@ -31,11 +32,11 @@ exports.task = function() {
       .pipe(filter(['**', '!**/*-theme.scss']))
       .pipe(filter(['**', '!**/*-attributes.scss']))
       .pipe(concat('angular-material.scss'))
-      .pipe(gulp.dest(dest))            // raw uncompiled SCSS
+      .pipe(insert.prepend(config.banner))
+      .pipe(gulp.dest(dest))                        // raw uncompiled SCSS
       .pipe(sass())
       .pipe(util.dedupeCss())
       .pipe(util.autoprefix())
-      .pipe(insert.prepend(config.banner))
       .pipe(gulp.dest(dest))                        // unminified
       .pipe(gulpif(!IS_DEV, minifyCss()))
       .pipe(gulpif(!IS_DEV, util.dedupeCss()))
@@ -44,14 +45,14 @@ exports.task = function() {
   );
 
   streams.push(
-      gulp.src( config.cssIEPaths.slice() )         // append raw CSS for IE Fixes
-        .pipe( concat('angular-material.layouts.ie_fixes.css') )
-        .pipe( gulp.dest(layoutDest) )
+      gulp.src(config.cssIEPaths.slice())           // append raw CSS for IE Fixes
+        .pipe(concat('angular-material.layouts.ie_fixes.css'))
+        .pipe(gulp.dest(layoutDest))
   );
 
   // Generate standalone SCSS (and CSS) file for Layouts API
   // The use of these classnames is automated but requires
-  // the Javascript module module `material.core.layout`
+  // the Javascript module `material.core.layout`
   //  > (see src/core/services/layout.js)
   // NOTE: this generated css is ALSO appended to the published
   //       angular-material.css file
@@ -77,7 +78,7 @@ exports.task = function() {
   // These are intended to allow usages of the Layout styles
   // without:
   //  * use of the Layout directives and classnames, and
-  //  * Layout module `material.core.layout
+  //  * Layout module `material.core.layout`
 
   streams.push(
       gulp.src(config.scssLayoutAttributeFiles)
@@ -98,16 +99,18 @@ exports.task = function() {
 
   return series(streams);
 
-
+  /**
+   * @returns {string[]} array of SCSS file paths used in the build
+   */
   function getPaths () {
     const paths = config.scssBaseFiles.slice();
-    if ( modules ) {
+    if (modules) {
       paths.push.apply(paths, modules.split(',').map(function (module) {
         return 'src/components/' + module + '/*.scss';
       }));
     } else {
-      paths.push('src/components/**/*.scss');
-      paths.push('src/core/services/layout/**/*.scss');
+      config.scssComponentPaths.forEach(component => paths.push(path.join(component, '*.scss')));
+      paths.push(config.scssServicesLayout);
     }
     overrides && paths.unshift(overrides);
     return paths;

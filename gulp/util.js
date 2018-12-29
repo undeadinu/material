@@ -41,18 +41,22 @@ exports.args = args;
  * Builds the entire component library javascript.
  */
 function buildJs () {
-  const jsFiles = config.jsBaseFiles.concat([path.join(config.paths, '*.js')]);
+  const jsFiles = config.jsCoreFiles;
+  config.componentPaths.forEach(component => {
+    jsFiles.push(path.join(component, '*.js'));
+    jsFiles.push(path.join(component, '**/*.js'));
+  });
 
   gutil.log("building js files...");
 
-  const jsBuildStream = gulp.src( jsFiles )
+  const jsBuildStream = gulp.src(jsFiles)
       .pipe(filterNonCodeFiles())
       .pipe(utils.buildNgMaterialDefinition())
       .pipe(plumber())
       .pipe(ngAnnotate())
       .pipe(utils.addJsWrapper(true));
 
-  const jsProcess = series(jsBuildStream, themeBuildStream() )
+  const jsProcess = series(jsBuildStream, themeBuildStream())
       .pipe(concat('angular-material.js'))
       .pipe(BUILD_MODE.transform())
       .pipe(insert.prepend(config.banner))
@@ -224,7 +228,10 @@ function filterNonCodeFiles() {
 
 // builds the theming related css and provides it as a JS const for angular
 function themeBuildStream() {
-  return gulp.src( config.themeBaseFiles.concat(path.join(config.paths, '*-theme.scss')) )
+  var paths = config.themeBaseFiles;
+  config.componentPaths.forEach(component => paths.push(path.join(component, '*-theme.scss')));
+
+  return gulp.src(paths)
       .pipe(concat('default-theme.scss'))
       .pipe(utils.hoistScssVariables())
       .pipe(sass())
